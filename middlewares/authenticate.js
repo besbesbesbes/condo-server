@@ -19,6 +19,7 @@ module.exports = tryCatch(async (req, res, next) => {
     },
     select: {
       userId: true,
+      userName: true,
     },
   });
   if (!foundUser) {

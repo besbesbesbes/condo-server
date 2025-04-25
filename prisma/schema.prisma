@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,11 +8,53 @@ datasource db {
 }
 
 model User {
-  userId  Int @id @default(autoincrement()) @map("user_id")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  userName        String    @unique @map("user_name")
-  userPassword    String    @map("user_password")
-  userRemark  String? @map("user_remark")
+  userId       Int           @id @default(autoincrement()) @map("user_id")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  userName     String        @unique @map("user_name")
+  userPassword String        @map("user_password")
+  userRemark   String?       @map("user_remark")
+  trans        Tran[]        @relation("UserTransactions")
+  paidTrans    Tran[]        @relation("PaidUserTransactions")
+  expenseTypes ExpenseType[]
+
   @@map("user")
+}
+
+model ExpenseType {
+  expenseTypeId Int      @id @default(autoincrement()) @map("expense_type_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  userId        Int      @map("user_id")
+  user          User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  expenseName   String   @map("expense_name")
+  isDelete      Boolean  @default(false) @map("is_delete")
+  trans         Tran[]
+
+  @@map("expense_type")
+}
+
+model Tran {
+  tranId    Int      @id @default(autoincrement()) @map("tran_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userId Int  @map("user_id") // Foreign key for the user
+  user   User @relation("UserTransactions", fields: [userId], references: [userId], onDelete: Cascade)
+
+  recordDate DateTime @map("record_date")
+
+  paidUserId Int  @map("paid_user_id") // Foreign key for the paid user
+  paidUser   User @relation("PaidUserTransactions", fields: [paidUserId], references: [userId], onDelete: Cascade)
+
+  expenseTypeId Int         @map("expense_type_id")
+  expenseType   ExpenseType @relation(fields: [expenseTypeId], references: [expenseTypeId], onDelete: Cascade)
+
+  totalAmt  Float   @map("total_amt")
+  myPortion Float   @map("my_portion")
+  myAmt     Float   @map("my_amt")
+  otherAmt  Float   @map("other_amt")
+  remark    String?
+
+  @@map("tran")
 }
