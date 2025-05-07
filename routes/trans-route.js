@@ -3,7 +3,7 @@ const transRoute = express.Router();
 const transController = require("../controllers/trans-controller");
 const authenticate = require("../middlewares/authenticate");
 
-transRoute.get("/", authenticate, transController.getTrans);
+transRoute.post("/", authenticate, transController.getTrans);
 transRoute.post("/edit-tran", authenticate, transController.editTran);
 transRoute.post("/delete-tran", authenticate, transController.deleteTran);
 

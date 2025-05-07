@@ -3,10 +3,17 @@ const tryCatch = require("../utils/try-catch");
 const createError = require("../utils/create-error");
 
 module.exports.getTrans = tryCatch(async (req, res, next) => {
+  const yearInput = req.body.yearInput;
+  const startDate = new Date(`${yearInput}-01-01`);
+  const endDate = new Date(`${+yearInput + 1}-01-01`);
+
   const trans = await prisma.Tran.findMany({
-    // where: {
-    //   userId: req.user.userId,
-    // },
+    where: {
+      recordDate: {
+        gte: startDate,
+        lt: endDate,
+      },
+    },
     include: {
       paidUser: {
         select: {
@@ -25,9 +32,10 @@ module.exports.getTrans = tryCatch(async (req, res, next) => {
       },
     },
     orderBy: {
-      recordDate: "desc", // 'asc' for ascending order or 'desc' for descending order
+      recordDate: "desc",
     },
   });
+
   res.json({ trans, msg: "Get trans successful..." });
 });
 
