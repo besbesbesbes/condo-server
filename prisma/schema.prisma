@@ -17,6 +17,7 @@ model User {
   trans        Tran[]        @relation("UserTransactions")
   paidTrans    Tran[]        @relation("PaidUserTransactions")
   expenseTypes ExpenseType[]
+  chats        Chat[]
 
   @@map("user")
 }
@@ -57,4 +58,21 @@ model Tran {
   remark    String?
 
   @@map("tran")
+}
+
+model Chat {
+  chatId  Int  @id @default(autoincrement()) @map("chat_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  userId  Int      @map("user_id")
+  user    User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  txt     String
+  @@map("chat")
+}
+
+model Test {
+  testId    Int      @id @default(autoincrement()) @map("test_id")
+  test      String      
+
+  @@map("test")
 }
