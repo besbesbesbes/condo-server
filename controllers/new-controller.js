@@ -13,10 +13,11 @@ module.exports.newTranInfo = tryCatch(async (req, res, next) => {
   // find all expense type
   const types = await prisma.ExpenseType.findMany({
     where: {
-      userId: req.user.userId,
+      // userId: req.user.userId,
       isDelete: false,
     },
     select: {
+      userId: true,
       expenseName: true,
       expenseTypeId: true,
     },
