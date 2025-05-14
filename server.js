@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
-const app = express();
+const http = require("http");
+const { Server } = require("socket.io");
 const cors = require("cors");
 const errorMiddleware = require("./middlewares/error");
 const notFound = require("./middlewares/not-found");
@@ -11,10 +12,33 @@ const transRoute = require("./routes/trans-route");
 const reportRoute = require("./routes/report-route");
 const testRoute = require("./routes/test-route");
 const chatRoute = require("./routes/chat-route");
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+// Log every user who connects via socket
+io.on("connection", (socket) => {
+  console.log(`User connected: ${socket.id}`);
+
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.id}`);
+  });
+});
 
 // //middleware
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
+
+// Attach io to every req
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // routing
 app.use("/api/auth", authRoute);
@@ -29,4 +53,4 @@ app.use(errorMiddleware);
 
 // start server
 const port = process.env.PORT || 8009;
-app.listen(port, () => console.log("SERVER ON: ", port));
+server.listen(port, () => console.log("SERVER ON:", port));

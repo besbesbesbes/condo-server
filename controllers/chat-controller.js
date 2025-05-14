@@ -18,12 +18,13 @@ module.exports.addNewMsg = tryCatch(async (req, res, next) => {
     );
   }
 
-  await prisma.chat.create({
+  const newMsg = await prisma.chat.create({
     data: {
       userId,
       txt,
     },
   });
 
+  req.io.emit("newMessage", newMsg);
   res.json({ msg: "Add new message successful." });
 });
