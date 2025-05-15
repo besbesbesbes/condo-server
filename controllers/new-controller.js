@@ -92,6 +92,7 @@ module.exports.editType = tryCatch(async (req, res, next) => {
 });
 
 module.exports.addNewTran = tryCatch(async (req, res, next) => {
+  console.log(req.body);
   const {
     recordDate,
     recordTime,
@@ -104,16 +105,17 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
     remark,
   } = req.body;
   if (
-    !(
-      recordDate &&
-      recordTime &&
-      paidById &&
-      typeId &&
-      totalAmt &&
-      myPortion &&
-      myAmt &&
-      otherAmt
-    )
+    recordDate == null ||
+    recordTime == null ||
+    paidById == null ||
+    typeId == null ||
+    totalAmt == null ||
+    myPortion == null ||
+    Number.isNaN(myPortion) ||
+    myAmt == null ||
+    Number.isNaN(myAmt) ||
+    otherAmt == null ||
+    Number.isNaN(otherAmt)
   ) {
     createError(400, "Lack data!");
   }
