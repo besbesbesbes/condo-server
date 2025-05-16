@@ -22,5 +22,6 @@ module.exports.newTran = tryCatch(async (req, res, next) => {
   };
 
   await transporter.sendMail(mailOptions);
+  console.log("Email sent successfully");
   res.json({ message: "Email sent successfully" });
 });
