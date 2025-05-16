@@ -3,7 +3,7 @@ const tryCatch = require("../utils/try-catch");
 const createError = require("../utils/create-error");
 const nodemailer = require("nodemailer");
 
-module.exports.testSendMail = tryCatch(async (req, res, next) => {
+module.exports.newTran = tryCatch(async (req, res, next) => {
   const { to, subject, text } = req.body;
 
   const transporter = nodemailer.createTransport({
