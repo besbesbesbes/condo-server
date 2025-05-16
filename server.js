@@ -12,6 +12,7 @@ const transRoute = require("./routes/trans-route");
 const reportRoute = require("./routes/report-route");
 const testRoute = require("./routes/test-route");
 const chatRoute = require("./routes/chat-route");
+const mailRoute = require("./routes/mail-route");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -48,6 +49,7 @@ app.use("/api/trans", transRoute);
 app.use("/api/report", reportRoute);
 app.use("/api/test", testRoute);
 app.use("/api/chat", chatRoute);
+app.use("/api/mail", mailRoute);
 app.use(notFound);
 app.use(errorMiddleware);
 
