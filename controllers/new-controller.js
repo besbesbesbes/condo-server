@@ -1,6 +1,7 @@
 const prisma = require("../models");
 const tryCatch = require("../utils/try-catch");
 const createError = require("../utils/create-error");
+const { DateTime } = require("luxon");
 
 module.exports.newTranInfo = tryCatch(async (req, res, next) => {
   // find all users
@@ -119,7 +120,11 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
   ) {
     createError(400, "Lack data!");
   }
-  const combinedDateTime = new Date(`${recordDate}T${recordTime}`);
+  const combinedDateTime = DateTime.fromISO(`${recordDate}T${recordTime}`, {
+    zone: "Asia/Bangkok",
+  })
+    .toUTC()
+    .toJSDate();
   await prisma.Tran.create({
     data: {
       userId: Number(req.user.userId),
