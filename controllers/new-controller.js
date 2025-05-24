@@ -2,6 +2,10 @@ const prisma = require("../models");
 const tryCatch = require("../utils/try-catch");
 const createError = require("../utils/create-error");
 const { DateTime } = require("luxon");
+const cloudinary = require("../utils/cloudinary");
+const fs = require("fs/promises");
+const getPublicId = require("../utils/getPublicId");
+const path = require("path");
 
 module.exports.newTranInfo = tryCatch(async (req, res, next) => {
   // find all users
@@ -125,7 +129,29 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
   })
     .toUTC()
     .toJSDate();
-  await prisma.Tran.create({
+  // cloundinary
+  const haveFiles = !!req.files;
+  let uploadResults = [];
+  if (haveFiles) {
+    for (const file of req.files) {
+      try {
+        const uploadResult = await cloudinary.uploader.upload(file.path, {
+          overwrite: true,
+          public_id: path.parse(file.path).name,
+          folder: "Condo",
+          width: 500,
+          height: 500,
+          crop: "limit",
+        });
+        uploadResults.push(uploadResult.secure_url);
+        await fs.unlink(file.path);
+      } catch (err) {
+        return next(createError(500, "Fail to upload image"));
+      }
+    }
+  }
+  // DB create Tran
+  const tran = await prisma.Tran.create({
     data: {
       userId: Number(req.user.userId),
       recordDate: combinedDateTime,
@@ -138,5 +164,14 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
       remark,
     },
   });
+  // DB create Tran Photo
+  for (const rs of uploadResults) {
+    await prisma.TranPhoto.create({
+      data: {
+        tranId: tran.tranId,
+        photoUrl: rs,
+      },
+    });
+  }
   res.json({ msg: "Add new tran successful..." });
 });

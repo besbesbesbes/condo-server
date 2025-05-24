@@ -31,13 +31,23 @@ module.exports.getTrans = tryCatch(async (req, res, next) => {
           userName: true,
         },
       },
+      photos: {
+        select: {
+          photoUrl: true,
+          tranPhotoId: true,
+        },
+      },
     },
     orderBy: {
       recordDate: "desc",
     },
   });
+  const transWithFlag = trans.map((tran) => ({
+    ...tran,
+    isHavePhoto: tran.photos.length > 0,
+  }));
 
-  res.json({ trans, msg: "Get trans successful..." });
+  res.json({ trans: transWithFlag, msg: "Get trans successful..." });
 });
 
 module.exports.editTran = tryCatch(async (req, res, next) => {

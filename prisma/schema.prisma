@@ -57,6 +57,8 @@ model Tran {
   otherAmt  Float   @map("other_amt")
   remark    String?
 
+  photos    TranPhoto[]
+
   @@map("tran")
 }
 
@@ -75,4 +77,15 @@ model Test {
   test      String      
 
   @@map("test")
+}
+
+model TranPhoto {
+  tranPhotoId    Int      @id @default(autoincrement()) @map("tran_photo_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  photoUrl  String   @map("photo_url")
+  tranId    Int      @map("tran_id")
+  tran      Tran     @relation(fields: [tranId], references: [tranId], onDelete: Cascade)
+
+@@map("tran_photo")
 }
