@@ -139,8 +139,8 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
           overwrite: true,
           public_id: path.parse(file.path).name,
           folder: "Condo",
-          width: 500,
-          height: 500,
+          width: 2000,
+          height: 2000,
           crop: "limit",
         });
         uploadResults.push(uploadResult.secure_url);
