@@ -129,7 +129,7 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
   })
     .toUTC()
     .toJSDate();
-  // cloundinary
+  // cloudinary
   const haveFiles = !!req.files;
   let uploadResults = [];
   if (haveFiles) {
