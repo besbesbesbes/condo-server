@@ -13,6 +13,7 @@ const reportRoute = require("./routes/report-route");
 const testRoute = require("./routes/test-route");
 const chatRoute = require("./routes/chat-route");
 const mailRoute = require("./routes/mail-route");
+const exportRoute = require("./routes/export-route");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -50,6 +51,7 @@ app.use("/api/report", reportRoute);
 app.use("/api/test", testRoute);
 app.use("/api/chat", chatRoute);
 app.use("/api/mail", mailRoute);
+app.use("/api/export", exportRoute);
 app.use(notFound);
 app.use(errorMiddleware);
 
