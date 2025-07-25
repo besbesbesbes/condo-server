@@ -108,28 +108,27 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
     myAmt,
     otherAmt,
     remark,
+    inst,
   } = req.body;
+
   if (
-    recordDate == null ||
-    recordTime == null ||
-    paidById == null ||
-    typeId == null ||
-    totalAmt == null ||
-    myPortion == null ||
-    Number.isNaN(myPortion) ||
-    myAmt == null ||
-    Number.isNaN(myAmt) ||
-    otherAmt == null ||
-    Number.isNaN(otherAmt)
+    (!inst || inst.length === 0) &&
+    (recordDate == null ||
+      recordTime == null ||
+      paidById == null ||
+      typeId == null ||
+      totalAmt == null ||
+      myPortion == null ||
+      Number.isNaN(myPortion) ||
+      myAmt == null ||
+      Number.isNaN(myAmt) ||
+      otherAmt == null ||
+      Number.isNaN(otherAmt))
   ) {
-    createError(400, "Lack data!");
+    return next(createError(400, "Lack data!"));
   }
-  const combinedDateTime = DateTime.fromISO(`${recordDate}T${recordTime}`, {
-    zone: "Asia/Bangkok",
-  })
-    .toUTC()
-    .toJSDate();
-  // cloudinary
+
+  // Cloudinary Upload
   const haveFiles = !!req.files;
   let uploadResults = [];
   if (haveFiles) {
@@ -150,28 +149,52 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
       }
     }
   }
-  // DB create Tran
-  const tran = await prisma.Tran.create({
-    data: {
-      userId: Number(req.user.userId),
-      recordDate: combinedDateTime,
-      paidUserId: Number(paidById),
-      expenseTypeId: Number(typeId),
-      totalAmt: parseFloat(totalAmt),
-      myPortion: parseFloat(myPortion),
-      myAmt: parseFloat(myAmt),
-      otherAmt: parseFloat(otherAmt),
-      remark,
-    },
-  });
-  // DB create Tran Photo
-  for (const rs of uploadResults) {
-    await prisma.TranPhoto.create({
+
+  // Handle Installments if exists
+  const parsedInst = typeof inst === "string" ? JSON.parse(inst) : inst;
+
+  const installments =
+    Array.isArray(parsedInst) && parsedInst.length > 0
+      ? parsedInst
+      : [
+          {
+            date: recordDate,
+            amt: totalAmt,
+            useTime: true,
+          },
+        ];
+
+  for (const item of installments) {
+    const combinedDateTime = DateTime.fromISO(
+      item.useTime ? `${item.date}T${recordTime}` : `${item.date}T00:00:00`,
+      { zone: "Asia/Bangkok" }
+    )
+      .toUTC()
+      .toJSDate();
+
+    const tran = await prisma.Tran.create({
       data: {
-        tranId: tran.tranId,
-        photoUrl: rs,
+        userId: Number(req.user.userId),
+        recordDate: combinedDateTime,
+        paidUserId: Number(paidById),
+        expenseTypeId: Number(typeId),
+        totalAmt: parseFloat(item.amt),
+        myPortion: parseFloat(myPortion),
+        myAmt: parseFloat(myAmt),
+        otherAmt: parseFloat(otherAmt),
+        remark,
       },
     });
+
+    for (const rs of uploadResults) {
+      await prisma.TranPhoto.create({
+        data: {
+          tranId: tran.tranId,
+          photoUrl: rs,
+        },
+      });
+    }
   }
-  res.json({ msg: "Add new tran successful..." });
+
+  res.json({ msg: "Add new tran(s) successful..." });
 });
