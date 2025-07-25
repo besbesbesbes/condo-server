@@ -179,9 +179,13 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
         paidUserId: Number(paidById),
         expenseTypeId: Number(typeId),
         totalAmt: parseFloat(item.amt),
-        myPortion: parseFloat(myPortion),
-        myAmt: parseFloat(myAmt),
-        otherAmt: parseFloat(otherAmt),
+        myPortion:
+          parsedInst && parsedInst.length > 0 ? 0 : parseFloat(myPortion),
+        myAmt: parsedInst && parsedInst.length > 0 ? 0 : parseFloat(myAmt),
+        otherAmt:
+          parsedInst && parsedInst.length > 0
+            ? parseFloat(item.amt)
+            : parseFloat(otherAmt),
         remark,
       },
     });
