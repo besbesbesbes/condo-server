@@ -7,21 +7,25 @@ module.exports.newTran = tryCatch(async (req, res, next) => {
   const { to, subject, text } = req.body;
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465, // or 587
+    secure: true, // true for 465, false for 587
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    connectionTimeout: 10000, // 10s timeout so it won't hang forever
   });
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: `"KB Admin" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     text,
   };
 
-  await transporter.sendMail(mailOptions);
-  console.log("Email sent successfully");
+  const info = await transporter.sendMail(mailOptions);
+  console.log("Email sent:", info.response);
+
   res.json({ message: "Email sent successfully" });
 });
