@@ -113,18 +113,16 @@ module.exports.editTran = tryCatch(async (req, res, next) => {
   }
   // update db tran
   await prisma.Tran.update({
-    where: {
-      tranId: Number(tranId),
-    },
+    where: { tranId: Number(tranId) },
     data: {
-      userId: Number(req.user.userId),
+      user: { connect: { userId: Number(req.user.userId) } },
+      paidUser: { connect: { userId: Number(paidById) } },
+      expenseType: { connect: { expenseTypeId: Number(typeId) } },
       recordDate: combinedDateTime,
-      paidUserId: Number(paidById),
-      expenseTypeId: Number(typeId),
-      totalAmt: parseFloat(totalAmt),
-      myPortion: parseFloat(myPortion),
-      myAmt: parseFloat(myAmt),
-      otherAmt: parseFloat(otherAmt),
+      totalAmt: Number(totalAmt),
+      myPortion: Number(myPortion),
+      myAmt: Number(myAmt),
+      otherAmt: Number(otherAmt),
       remark,
     },
   });
