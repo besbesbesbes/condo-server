@@ -14,6 +14,7 @@ const testRoute = require("./routes/test-route");
 const chatRoute = require("./routes/chat-route");
 const mailRoute = require("./routes/mail-route");
 const exportRoute = require("./routes/export-route");
+const memoRoute = require("./routes/memo-route");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -52,6 +53,7 @@ app.use("/api/test", testRoute);
 app.use("/api/chat", chatRoute);
 app.use("/api/mail", mailRoute);
 app.use("/api/export", exportRoute);
+app.use("/api/memo", memoRoute);
 app.use(notFound);
 app.use(errorMiddleware);
 

@@ -18,6 +18,8 @@ model User {
   paidTrans    Tran[]        @relation("PaidUserTransactions")
   expenseTypes ExpenseType[]
   chats        Chat[]
+  memos        Memo[]
+  memoHiddens  MemoHidden[]
 
   @@map("user")
 }
@@ -57,35 +59,64 @@ model Tran {
   otherAmt  Float   @map("other_amt")
   remark    String?
 
-  photos    TranPhoto[]
+  photos TranPhoto[]
 
   @@map("tran")
 }
 
 model Chat {
-  chatId  Int  @id @default(autoincrement()) @map("chat_id")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  userId  Int      @map("user_id")
-  user    User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  txt     String
+  chatId    Int      @id @default(autoincrement()) @map("chat_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  txt       String
+
   @@map("chat")
 }
 
 model Test {
-  testId    Int      @id @default(autoincrement()) @map("test_id")
-  test      String      
+  testId Int    @id @default(autoincrement()) @map("test_id")
+  test   String
 
   @@map("test")
 }
 
 model TranPhoto {
-  tranPhotoId    Int      @id @default(autoincrement()) @map("tran_photo_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  photoUrl  String   @map("photo_url")
-  tranId    Int      @map("tran_id")
-  tran      Tran     @relation(fields: [tranId], references: [tranId], onDelete: Cascade)
+  tranPhotoId Int      @id @default(autoincrement()) @map("tran_photo_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  photoUrl    String   @map("photo_url")
+  tranId      Int      @map("tran_id")
+  tran        Tran     @relation(fields: [tranId], references: [tranId], onDelete: Cascade)
 
-@@map("tran_photo")
+  @@map("tran_photo")
+}
+
+model Memo {
+  memoId    Int          @id @default(autoincrement()) @map("memo_id")
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  userId    Int          @map("user_id")
+  user      User         @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  txt       String       @db.LongText
+  isPrivate Boolean      @map("is_private")
+  isActive  Boolean      @map("is_active")
+  isLock    Boolean      @default(false) @map("is_lock")
+  hiddenBy  MemoHidden[]
+
+  @@map("memo")
+}
+
+model MemoHidden {
+  memoHiddenId Int      @id @default(autoincrement()) @map("memo_hidden_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  memoId       Int
+  memo         Memo     @relation(fields: [memoId], references: [memoId], onDelete: Cascade)
+  userId       Int
+  user         User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([memoId, userId])
+  @@map("memo_hidden")
 }
