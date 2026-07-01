@@ -97,7 +97,8 @@ module.exports.editType = tryCatch(async (req, res, next) => {
 });
 
 module.exports.addNewTran = tryCatch(async (req, res, next) => {
-  console.log(req.body);
+  console.log(req.body.tags);
+
   const {
     recordDate,
     recordTime,
@@ -109,6 +110,7 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
     otherAmt,
     remark,
     inst,
+    tags, // 👈 NEW
   } = req.body;
 
   if (
@@ -128,9 +130,37 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
     return next(createError(400, "Lack data!"));
   }
 
+  // -----------------------------
+  // Parse tags
+  // -----------------------------
+  let parsedTags = [];
+
+  try {
+    parsedTags =
+      typeof tags === "string"
+        ? JSON.parse(tags)
+        : Array.isArray(tags)
+          ? tags
+          : [];
+  } catch (err) {
+    return next(createError(400, "Invalid tags format"));
+  }
+
+  // normalize tag text
+  parsedTags = parsedTags
+    .filter((t) => t && t.tagTxt)
+    .map((t) => ({
+      tagId: t.tagId,
+      tagTxt: t.tagTxt.trim(),
+      isNew: t.isNew,
+    }));
+
+  // -----------------------------
   // Cloudinary Upload
+  // -----------------------------
   const haveFiles = !!req.files;
   let uploadResults = [];
+
   if (haveFiles) {
     for (const file of req.files) {
       try {
@@ -142,6 +172,7 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
           height: 2000,
           crop: "limit",
         });
+
         uploadResults.push(uploadResult.secure_url);
         await fs.unlink(file.path);
       } catch (err) {
@@ -150,7 +181,9 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
     }
   }
 
-  // Handle Installments if exists
+  // -----------------------------
+  // Installments
+  // -----------------------------
   const parsedInst = typeof inst === "string" ? JSON.parse(inst) : inst;
 
   const installments =
@@ -167,11 +200,14 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
   for (const item of installments) {
     const combinedDateTime = DateTime.fromISO(
       item.useTime ? `${item.date}T${recordTime}` : `${item.date}T00:00:00`,
-      { zone: "Asia/Bangkok" }
+      { zone: "Asia/Bangkok" },
     )
       .toUTC()
       .toJSDate();
 
+    // -----------------------------
+    // CREATE TRAN
+    // -----------------------------
     const tran = await prisma.Tran.create({
       data: {
         userId: Number(req.user.userId),
@@ -190,6 +226,36 @@ module.exports.addNewTran = tryCatch(async (req, res, next) => {
       },
     });
 
+    // -----------------------------
+    // CREATE TAGS + TAG_TRAN
+    // -----------------------------
+    if (parsedTags.length > 0) {
+      for (const tagItem of parsedTags) {
+        let tag;
+
+        if (tagItem.isNew) {
+          tag = await prisma.Tag.create({
+            data: {
+              tagTxt: tagItem.tagTxt,
+            },
+          });
+        } else {
+          tag = { tagId: tagItem.tagId };
+        }
+
+        await prisma.TagTran.create({
+          data: {
+            tranId: tran.tranId,
+            tagId: tag.tagId,
+            recordDate: tran.recordDate,
+          },
+        });
+      }
+    }
+
+    // -----------------------------
+    // Photos
+    // -----------------------------
     for (const rs of uploadResults) {
       await prisma.TranPhoto.create({
         data: {

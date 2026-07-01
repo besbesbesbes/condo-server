@@ -59,7 +59,8 @@ model Tran {
   otherAmt  Float   @map("other_amt")
   remark    String?
 
-  photos TranPhoto[]
+  photos   TranPhoto[]
+  tagTrans TagTran[]
 
   @@map("tran")
 }
@@ -119,4 +120,27 @@ model MemoHidden {
 
   @@unique([memoId, userId])
   @@map("memo_hidden")
+}
+
+model Tag {
+  tagId     Int       @id @default(autoincrement()) @map("tag_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  tagTxt    String    @map("tag_txt")
+  TagTran   TagTran[]
+
+  @@map("tag")
+}
+
+model TagTran {
+  tagTranId  Int      @id @default(autoincrement()) @map("tag_tran_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  recordDate DateTime @map("record_date")
+  tranId     Int?     @map("tran_id")
+  tran       Tran?    @relation(fields: [tranId], references: [tranId], onDelete: Cascade)
+  tagId      Int      @map("tag_id")
+  tag        Tag      @relation(fields: [tagId], references: [tagId], onDelete: Cascade)
+
+  @@map("tag_tran")
 }

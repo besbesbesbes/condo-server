@@ -41,6 +41,16 @@ module.exports.getTrans = tryCatch(async (req, res, next) => {
           tranPhotoId: true,
         },
       },
+      tagTrans: {
+        include: {
+          tag: {
+            select: {
+              tagId: true,
+              tagTxt: true,
+            },
+          },
+        },
+      },
     },
     orderBy: {
       recordDate: "desc",
@@ -67,7 +77,12 @@ module.exports.editTran = tryCatch(async (req, res, next) => {
     myAmt,
     otherAmt,
     remark,
+    tags,
   } = req.body;
+
+  const tagList = JSON.parse(tags || "[]");
+
+  console.log(tagList);
   if (
     tranId == null ||
     recordDate == null ||
@@ -126,6 +141,48 @@ module.exports.editTran = tryCatch(async (req, res, next) => {
       remark,
     },
   });
+
+  // Delete all existing tags of this transaction
+  await prisma.TagTran.deleteMany({
+    where: {
+      tranId: Number(tranId),
+    },
+  });
+
+  for (const tag of tagList) {
+    let tagId = tag.tagId;
+
+    // Create new tag if it doesn't exist
+    if (!tagId) {
+      const tagTxt = tag.tagTxt.trim();
+
+      let existTag = await prisma.Tag.findFirst({
+        where: {
+          tagTxt,
+        },
+      });
+
+      if (!existTag) {
+        existTag = await prisma.Tag.create({
+          data: {
+            tagTxt,
+          },
+        });
+      }
+
+      tagId = existTag.tagId;
+    }
+
+    // Create TagTran
+    await prisma.TagTran.create({
+      data: {
+        tranId: Number(tranId),
+        tagId,
+        recordDate: combinedDateTime,
+      },
+    });
+  }
+
   // DB create Tran Photo
   for (const rs of uploadResults) {
     await prisma.TranPhoto.create({
