@@ -5,5 +5,6 @@ const authenticate = require("../middlewares/authenticate");
 
 tagRoute.get("/get-tag", authenticate, tagController.getTag);
 tagRoute.post("/get-tag-tran", authenticate, tagController.getTagTran);
+tagRoute.post("/edit-tag-tran", authenticate, tagController.editTagTran);
 
 module.exports = tagRoute;

@@ -35,3 +35,50 @@ module.exports.getTag = tryCatch(async (req, res, next) => {
     tags,
   });
 });
+
+module.exports.editTagTran = tryCatch(async (req, res) => {
+  const { date, add = [], delete: deleteArr = [] } = req.body;
+
+  const recordDate = new Date(date);
+
+  await prisma.$transaction(async (tx) => {
+    // -------------------
+    // DELETE (SAFE)
+    // -------------------
+    if (deleteArr.length > 0) {
+      for (const item of deleteArr) {
+        if (!item.tagTranId) continue;
+
+        await tx.tagTran.delete({
+          where: {
+            tagTranId: item.tagTranId,
+          },
+        });
+      }
+    }
+
+    // -------------------
+    // ADD
+    // -------------------
+    for (const item of add) {
+      let tagId = item.tagId;
+
+      if (!tagId) {
+        const newTag = await tx.tag.create({
+          data: { tagTxt: item.tagTxt },
+        });
+
+        tagId = newTag.tagId;
+      }
+
+      await tx.tagTran.create({
+        data: {
+          tagId,
+          recordDate,
+        },
+      });
+    }
+  });
+
+  res.json({ msg: "Edit tag tran successful" });
+});

@@ -126,7 +126,7 @@ model Tag {
   tagId     Int       @id @default(autoincrement()) @map("tag_id")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
-  tagTxt    String    @map("tag_txt")
+  tagTxt    String    @unique @map("tag_txt")
   TagTran   TagTran[]
 
   @@map("tag")
