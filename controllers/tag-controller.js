@@ -4,12 +4,55 @@ const createError = require("../utils/create-error");
 
 module.exports.getTagTran = tryCatch(async (req, res, next) => {
   const { startDate, endDate } = req.body;
+  const userId = req.user.userId;
 
+  // 1. Get login user + buddy
+  const user = await prisma.user.findUnique({
+    where: { userId },
+    select: {
+      userId: true,
+      buddyAsUser1: {
+        select: {
+          user2: {
+            select: {
+              userId: true,
+              isDummy: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const buddy = user.buddyAsUser1[0]?.user2;
+
+  // 2. Build allowed user ids
+  const userIds = [user.userId];
+
+  if (buddy && !buddy.isDummy) {
+    userIds.push(buddy.userId);
+  }
+
+  // 3. Get tag transactions
   const tagTrans = await prisma.tagTran.findMany({
     where: {
       recordDate: {
         gte: new Date(startDate),
         lt: new Date(endDate),
+      },
+      tran: {
+        OR: [
+          {
+            userId: {
+              in: userIds,
+            },
+          },
+          {
+            paidUserId: {
+              in: userIds,
+            },
+          },
+        ],
       },
     },
     include: {
