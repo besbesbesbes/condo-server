@@ -9,11 +9,45 @@ const path = require("path");
 
 module.exports.getTrans = tryCatch(async (req, res, next) => {
   const yearInput = req.body.yearInput;
+
   const startDate = new Date(`${yearInput}-01-01`);
   const endDate = new Date(`${+yearInput + 1}-01-01`);
 
+  // 1. Get user + buddy
+  const user = await prisma.user.findUnique({
+    where: {
+      userId: req.user.userId,
+    },
+    select: {
+      userId: true,
+      buddyAsUser1: {
+        select: {
+          user2: {
+            select: {
+              userId: true,
+              isDummy: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const buddy = user.buddyAsUser1[0]?.user2;
+
+  // 2. Build allowed userIds (user + buddy if real)
+  const userIds = [user.userId];
+
+  if (buddy && !buddy.isDummy) {
+    userIds.push(buddy.userId);
+  }
+
+  // 3. Query only transactions for these users
   const trans = await prisma.Tran.findMany({
     where: {
+      userId: {
+        in: userIds,
+      },
       recordDate: {
         gte: startDate,
         lt: endDate,
@@ -56,12 +90,16 @@ module.exports.getTrans = tryCatch(async (req, res, next) => {
       recordDate: "desc",
     },
   });
+
   const transWithFlag = trans.map((tran) => ({
     ...tran,
     isHavePhoto: tran.photos.length > 0,
   }));
 
-  res.json({ trans: transWithFlag, msg: "Get trans successful..." });
+  res.json({
+    trans: transWithFlag,
+    msg: "Get trans successful...",
+  });
 });
 
 module.exports.editTran = tryCatch(async (req, res, next) => {

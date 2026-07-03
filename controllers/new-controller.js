@@ -8,35 +8,67 @@ const getPublicId = require("../utils/getPublicId");
 const path = require("path");
 
 module.exports.newTranInfo = tryCatch(async (req, res, next) => {
-  // find all users
-  const users = await prisma.User.findMany({
-    select: {
-      userName: true,
-      userId: true,
-    },
-  });
-  // find all expense type
-  const types = await prisma.ExpenseType.findMany({
+  const user = await prisma.user.findUnique({
     where: {
-      // userId: req.user.userId,
-      isDelete: false,
+      userId: req.user.userId,
     },
     select: {
       userId: true,
-      expenseName: true,
-      expenseTypeId: true,
+      userName: true,
+      expenseTypes: {
+        where: {
+          isDelete: false,
+        },
+        select: {
+          userId: true,
+          expenseName: true,
+          expenseTypeId: true,
+        },
+      },
+      buddyAsUser1: {
+        select: {
+          user2: {
+            select: {
+              userId: true,
+              userName: true,
+              isDummy: true,
+              expenseTypes: {
+                where: {
+                  isDelete: false,
+                },
+                select: {
+                  userId: true,
+                  expenseName: true,
+                  expenseTypeId: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
-  //   find last expense type
-  //   const lastTran = await prisma.tran.findFirst({
-  //     where: {
-  //       userId: req.user.userId,
-  //     },
-  //     orderBy: {
-  //       createdAt: "desc",
-  //     },
-  //   });
-  //----------------------------
+
+  const buddy = user.buddyAsUser1[0]?.user2;
+
+  const users = [
+    {
+      userId: user.userId,
+      userName: user.userName,
+    },
+  ];
+
+  let types = [...user.expenseTypes];
+
+  if (buddy && !buddy.isDummy) {
+    users.push({
+      userId: buddy.userId,
+      userName: buddy.userName,
+    });
+
+    types.push(...buddy.expenseTypes);
+  }
+
   res.json({
     paidUser: req.user.userName,
     paidUserId: req.user.userId,

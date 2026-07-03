@@ -28,32 +28,78 @@ module.exports.addMemo = tryCatch(async (req, res, next) => {
 module.exports.getMemo = tryCatch(async (req, res, next) => {
   const userId = req.user.userId;
 
+  // 1. Get login user + buddy
+  const user = await prisma.user.findUnique({
+    where: { userId },
+    select: {
+      userId: true,
+      userName: true,
+      buddyAsUser1: {
+        select: {
+          user2: {
+            select: {
+              userId: true,
+              userName: true,
+              isDummy: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const buddy = user.buddyAsUser1[0]?.user2;
+
+  // 2. Users for filter UI
+  const users = [
+    {
+      userId: user.userId,
+      userName: user.userName,
+    },
+  ];
+
+  if (buddy && !buddy.isDummy) {
+    users.push({
+      userId: buddy.userId,
+      userName: buddy.userName,
+    });
+  }
+
+  const userIds = users.map((u) => u.userId);
+
+  // 3. Get memos (only me + buddy)
   const memos = await prisma.memo.findMany({
     where: {
       isActive: true,
+      userId: {
+        in: userIds,
+      },
       OR: [
-        { userId }, // owner
-        { isPrivate: false }, // public
+        { isPrivate: false }, // everyone's public memo
+        { userId }, // my private memo
       ],
     },
     include: {
       user: {
         select: {
+          userId: true, // ✅ IMPORTANT
           userName: true,
         },
       },
       hiddenBy: {
         where: {
-          userId, // 👈 only current user relation
+          userId,
         },
         select: {
           memoHiddenId: true,
         },
       },
     },
+    orderBy: {
+      updatedAt: "desc",
+    },
   });
 
-  // ✅ flatten isHidden flag
   const result = memos.map((memo) => ({
     ...memo,
     isHidden: memo.hiddenBy.length > 0,
@@ -62,6 +108,7 @@ module.exports.getMemo = tryCatch(async (req, res, next) => {
   res.json({
     msg: "Get memo successful...",
     memos: result,
+    users,
   });
 });
 
