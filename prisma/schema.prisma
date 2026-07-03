@@ -8,12 +8,20 @@ datasource db {
 }
 
 model User {
-  userId       Int           @id @default(autoincrement()) @map("user_id")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  userName     String        @unique @map("user_name")
-  userPassword String        @map("user_password")
-  userRemark   String?       @map("user_remark")
+  userId    Int      @id @default(autoincrement()) @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userName     String  @unique @map("user_name")
+  userPassword String  @map("user_password")
+  userRemark   String? @map("user_remark")
+
+  isDummy     Boolean @default(false) @map("is_dummy")
+  ownerUserId Int?    @unique @map("owner_user_id")
+  ownerUser   User?   @relation("DummyOwner", fields: [ownerUserId], references: [userId])
+
+  dummyUser User? @relation("DummyOwner")
+
   trans        Tran[]        @relation("UserTransactions")
   paidTrans    Tran[]        @relation("PaidUserTransactions")
   expenseTypes ExpenseType[]
@@ -21,7 +29,43 @@ model User {
   memos        Memo[]
   memoHiddens  MemoHidden[]
 
+  buddyAsUser1 Buddy[] @relation("BuddyUser1")
+  buddyAsUser2 Buddy[] @relation("BuddyUser2")
+
+  sentBuddyRequests     BuddyRequest[] @relation("BuddyRequester")
+  receivedBuddyRequests BuddyRequest[] @relation("BuddyTarget")
+
   @@map("user")
+}
+
+model Buddy {
+  buddyId   Int      @id @default(autoincrement()) @map("buddy_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user1Id Int @unique @map("user1_id")
+  user2Id Int @unique @map("user2_id")
+
+  user1 User @relation("BuddyUser1", fields: [user1Id], references: [userId], onDelete: Cascade)
+  user2 User @relation("BuddyUser2", fields: [user2Id], references: [userId], onDelete: Cascade)
+
+  @@unique([user1Id, user2Id])
+  @@map("buddy")
+}
+
+model BuddyRequest {
+  buddyRequestId Int      @id @default(autoincrement()) @map("buddy_request_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  requestUserId Int @unique @map("request_user_id")
+  targetUserId  Int @map("target_user_id")
+
+  requestUser User @relation("BuddyRequester", fields: [requestUserId], references: [userId], onDelete: Cascade)
+  targetUser  User @relation("BuddyTarget", fields: [targetUserId], references: [userId], onDelete: Cascade)
+
+  @@unique([requestUserId, targetUserId])
+  @@map("buddy_request")
 }
 
 model ExpenseType {

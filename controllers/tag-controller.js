@@ -82,3 +82,47 @@ module.exports.editTagTran = tryCatch(async (req, res) => {
 
   res.json({ msg: "Edit tag tran successful" });
 });
+
+module.exports.getRecentTag = tryCatch(async (req, res, next) => {
+  const userId = req.user.userId;
+
+  const tagTrans = await prisma.tagTran.findMany({
+    where: {
+      tran: {
+        userId,
+      },
+    },
+    include: {
+      tag: {
+        select: {
+          tagId: true,
+          tagTxt: true,
+        },
+      },
+    },
+    orderBy: {
+      recordDate: "desc",
+    },
+  });
+
+  const recentTag = [];
+  const seen = new Set();
+
+  for (const item of tagTrans) {
+    if (seen.has(item.tag.tagId)) continue;
+
+    seen.add(item.tag.tagId);
+
+    recentTag.push({
+      tagId: item.tag.tagId,
+      tagTxt: item.tag.tagTxt,
+    });
+
+    if (recentTag.length === 10) break;
+  }
+
+  res.json({
+    msg: "Get recent tag successful...",
+    recentTag,
+  });
+});
