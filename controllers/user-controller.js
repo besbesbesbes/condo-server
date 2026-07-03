@@ -13,7 +13,62 @@ module.exports.userInfo = tryCatch(async (req, res, next) => {
     createError(400, "User not found!");
   }
   const { userPassword, ...restUser } = returnUser;
-  res.json({ user: restUser, msg: "Get user info successful..." });
+
+  const buddyRequest = await prisma.buddyRequest.findFirst({
+    where: {
+      requestUserId: req.user.userId,
+    },
+  });
+
+  if (buddyRequest) {
+    const targetUser = await prisma.user.findUnique({
+      where: {
+        userId: buddyRequest.targetUserId,
+      },
+    });
+
+    return res.json({
+      user: restUser,
+      buddy: {
+        buddyName: targetUser.userName,
+        status: "PENDING",
+      },
+      msg: "Get user info successful...",
+    });
+  }
+
+  const buddy = await prisma.buddy.findUnique({
+    where: {
+      user1Id: req.user.userId,
+    },
+    include: {
+      user2: true,
+    },
+  });
+
+  if (!buddy) {
+    return res.json({
+      user: restUser,
+      buddy: {
+        buddyName: "",
+        status: "NONE",
+      },
+      msg: "Get user info successful...",
+    });
+  }
+
+  const buddyUser = buddy.user2;
+
+  const buddyInfo = {
+    buddyName: buddyUser.isDummy ? "" : buddyUser.userName,
+    status: buddyUser.isDummy ? "NONE" : "BUDDY",
+  };
+
+  res.json({
+    user: restUser,
+    buddy: buddyInfo,
+    msg: "Get user info successful...",
+  });
 });
 
 module.exports.changePassword = tryCatch(async (req, res, next) => {

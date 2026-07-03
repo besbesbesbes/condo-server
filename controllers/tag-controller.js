@@ -118,7 +118,7 @@ module.exports.getRecentTag = tryCatch(async (req, res, next) => {
       tagTxt: item.tag.tagTxt,
     });
 
-    if (recentTag.length === 10) break;
+    if (recentTag.length === 6) break;
   }
 
   res.json({
