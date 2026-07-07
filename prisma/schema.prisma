@@ -29,6 +29,8 @@ model User {
   memos        Memo[]
   memoHiddens  MemoHidden[]
 
+  tagTrans TagTran[]
+
   buddyAsUser1 Buddy[] @relation("BuddyUser1")
   buddyAsUser2 Buddy[] @relation("BuddyUser2")
 
@@ -183,6 +185,8 @@ model TagTran {
   recordDate DateTime @map("record_date")
   tranId     Int?     @map("tran_id")
   tran       Tran?    @relation(fields: [tranId], references: [tranId], onDelete: Cascade)
+  userId     Int?     @map("user_id")
+  user       User?    @relation(fields: [userId], references: [userId], onDelete: Cascade)
   tagId      Int      @map("tag_id")
   tag        Tag      @relation(fields: [tagId], references: [tagId], onDelete: Cascade)
 

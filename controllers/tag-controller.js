@@ -40,20 +40,32 @@ module.exports.getTagTran = tryCatch(async (req, res, next) => {
         gte: new Date(startDate),
         lt: new Date(endDate),
       },
-      tran: {
-        OR: [
-          {
-            userId: {
-              in: userIds,
-            },
+      OR: [
+        // Calendar-only tags
+        {
+          userId: {
+            in: userIds,
           },
-          {
-            paidUserId: {
-              in: userIds,
-            },
+        },
+
+        // Tags attached to transactions
+        {
+          tran: {
+            OR: [
+              {
+                userId: {
+                  in: userIds,
+                },
+              },
+              {
+                paidUserId: {
+                  in: userIds,
+                },
+              },
+            ],
           },
-        ],
-      },
+        },
+      ],
     },
     include: {
       tag: true,
@@ -118,6 +130,7 @@ module.exports.editTagTran = tryCatch(async (req, res) => {
         data: {
           tagId,
           recordDate,
+          userId: req.user.userId,
         },
       });
     }
