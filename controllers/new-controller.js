@@ -46,10 +46,31 @@ module.exports.newTranInfo = tryCatch(async (req, res, next) => {
           },
         },
       },
+      buddyAsUser2: {
+        select: {
+          user1: {
+            select: {
+              userId: true,
+              userName: true,
+              isDummy: true,
+              expenseTypes: {
+                where: {
+                  isDelete: false,
+                },
+                select: {
+                  userId: true,
+                  expenseName: true,
+                  expenseTypeId: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
-  const buddy = user.buddyAsUser1[0]?.user2;
+  const buddy = user.buddyAsUser1[0]?.user2 ?? user.buddyAsUser2[0]?.user1;
 
   const users = [
     {

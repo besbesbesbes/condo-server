@@ -3,66 +3,125 @@ const tryCatch = require("../utils/try-catch");
 const createError = require("../utils/create-error");
 
 module.exports.getReportInfo = tryCatch(async (req, res, next) => {
-  // find all users
-  const users = await prisma.User.findMany({
+  const currentUserId = req.user.userId;
+  const { month, year } = req.body;
+
+  // ========================================
+  // Get current user + buddy (if any)
+  // ========================================
+  const users = await prisma.user.findMany({
+    where: {
+      OR: [
+        { userId: currentUserId },
+        {
+          buddyAsUser1: {
+            some: {
+              user2Id: currentUserId,
+            },
+          },
+        },
+        {
+          buddyAsUser2: {
+            some: {
+              user1Id: currentUserId,
+            },
+          },
+        },
+      ],
+    },
     select: {
-      userName: true,
       userId: true,
+      userName: true,
+    },
+    orderBy: {
+      userId: "asc",
     },
   });
-  // find summary
-  const { month, year, userId } = req.body;
-  const result = await prisma.$queryRaw`
-    SELECT 
-        t.expense_type_id AS typeId,
-        e.expense_name AS typeName,
-        SUM(t.total_amt) AS sumTotalAmt,
-        SUM(t.total_amt * t.my_portion) AS sumMyPortionAmt,
-        SUM(t.total_amt) - SUM(t.total_amt * t.my_portion) AS sumOtherAmt
-    FROM tran t
-    JOIN expense_type e ON t.expense_type_id = e.expense_type_id
-    WHERE t.user_id = ${userId}
-        AND MONTH(t.record_date) = ${month}
-        AND YEAR(t.record_date) = ${year}
-    GROUP BY t.expense_type_id, e.expense_name
-    `;
 
-  // other users' result
-  const resultOther = await prisma.$queryRaw`
-SELECT 
-    SUM(t.total_amt) AS sumTotalAmt,
-    SUM(t.total_amt * t.my_portion) AS sumMyPortionAmt,
-    SUM(t.total_amt) - SUM(t.total_amt * t.my_portion) AS sumOtherAmt
-FROM tran t
-WHERE t.user_id != ${userId}
-    AND MONTH(t.record_date) = ${month}
-    AND YEAR(t.record_date) = ${year}
-`;
+  const userIds = users.map((u) => u.userId);
 
-  // Calculate the totals
-  const resultSum = result.reduce(
-    (acc, row) => {
-      acc.sumTotalAmt += Number(row.sumTotalAmt);
-      acc.sumMyPortionAmt += Number(row.sumMyPortionAmt);
-      acc.sumOtherAmt += Number(row.sumOtherAmt);
-      return acc;
+  // ========================================
+  // Get all transactions
+  // ========================================
+  const trans = await prisma.tran.findMany({
+    where: {
+      userId: {
+        in: userIds,
+      },
+      recordDate: {
+        gte: new Date(year, month - 1, 1),
+        lt: new Date(year, month, 1),
+      },
     },
-    { sumTotalAmt: 0, sumMyPortionAmt: 0, sumOtherAmt: 0 }
-  );
+    include: {
+      expenseType: {
+        select: {
+          expenseTypeId: true,
+          expenseName: true,
+        },
+      },
+    },
+    orderBy: [
+      {
+        expenseTypeId: "asc",
+      },
+      {
+        recordDate: "asc",
+      },
+    ],
+  });
 
-  const resultSumOther = {
-    sumTotalAmt: Number(resultOther[0]?.sumTotalAmt || 0),
-    sumMyPortionAmt: Number(resultOther[0]?.sumMyPortionAmt || 0),
-    sumOtherAmt: Number(resultOther[0]?.sumOtherAmt || 0),
-  };
+  // ========================================
+  // Build report
+  // ========================================
+  const reportMap = {};
+
+  trans.forEach((tran) => {
+    const typeId = tran.expenseTypeId;
+
+    if (!reportMap[typeId]) {
+      reportMap[typeId] = {
+        expenseTypeId: tran.expenseTypeId,
+        expenseTypeName: tran.expenseType.expenseName,
+        userAmounts: [],
+        totalAmount: 0,
+      };
+
+      users.forEach((user) => {
+        reportMap[typeId].userAmounts.push({
+          userId: user.userId,
+          amount: 0,
+        });
+      });
+    }
+
+    // myAmt belongs to paid user
+    const paidUser = reportMap[typeId].userAmounts.find(
+      (u) => u.userId === tran.paidUserId,
+    );
+
+    if (paidUser) {
+      paidUser.amount += Number(tran.myAmt);
+    }
+
+    // otherAmt belongs to the other user
+    const otherUser = reportMap[typeId].userAmounts.find(
+      (u) => u.userId !== tran.paidUserId,
+    );
+
+    if (otherUser) {
+      otherUser.amount += Number(tran.otherAmt);
+    }
+
+    reportMap[typeId].totalAmount += Number(tran.totalAmt);
+  });
+
+  const report = Object.values(reportMap);
 
   res.json({
-    result,
-    resultSum,
-    body: req.body,
     users,
-    resultOther,
-    resultSumOther,
-    msg: "Get repot Info successful...",
+    report,
+    body: req.body,
+    msg: "Get report successful.",
   });
 });
