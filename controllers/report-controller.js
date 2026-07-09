@@ -7,7 +7,7 @@ module.exports.getReportInfo = tryCatch(async (req, res, next) => {
   const { month, year } = req.body;
 
   // ========================================
-  // Get current user + buddy (if any)
+  // Get current user + buddy
   // ========================================
   const users = await prisma.user.findMany({
     where: {
@@ -41,7 +41,7 @@ module.exports.getReportInfo = tryCatch(async (req, res, next) => {
   const userIds = users.map((u) => u.userId);
 
   // ========================================
-  // Get all transactions
+  // Get transactions
   // ========================================
   const trans = await prisma.tran.findMany({
     where: {
@@ -74,6 +74,7 @@ module.exports.getReportInfo = tryCatch(async (req, res, next) => {
   // ========================================
   // Build report
   // ========================================
+
   const reportMap = {};
 
   trans.forEach((tran) => {
@@ -83,37 +84,38 @@ module.exports.getReportInfo = tryCatch(async (req, res, next) => {
       reportMap[typeId] = {
         expenseTypeId: tran.expenseTypeId,
         expenseTypeName: tran.expenseType.expenseName,
-        userAmounts: [],
-        totalAmount: 0,
+        totalAmt: 0,
+        expense: {},
+        paid: {},
       };
 
+      // initialize every user
       users.forEach((user) => {
-        reportMap[typeId].userAmounts.push({
-          userId: user.userId,
-          amount: 0,
-        });
+        reportMap[typeId].expense[user.userId] = 0;
+        reportMap[typeId].paid[user.userId] = 0;
       });
     }
 
-    // myAmt belongs to paid user
-    const paidUser = reportMap[typeId].userAmounts.find(
-      (u) => u.userId === tran.paidUserId,
-    );
+    // -------------------------
+    // Total amount
+    // -------------------------
+    reportMap[typeId].totalAmt += Number(tran.totalAmt);
 
-    if (paidUser) {
-      paidUser.amount += Number(tran.myAmt);
-    }
+    // -------------------------
+    // Paid amount
+    // -------------------------
+    reportMap[typeId].paid[tran.paidUserId] += Number(tran.totalAmt);
 
-    // otherAmt belongs to the other user
-    const otherUser = reportMap[typeId].userAmounts.find(
-      (u) => u.userId !== tran.paidUserId,
-    );
+    // -------------------------
+    // Expense amount
+    // -------------------------
+    reportMap[typeId].expense[tran.paidUserId] += Number(tran.myAmt);
+
+    const otherUser = users.find((u) => u.userId !== tran.paidUserId);
 
     if (otherUser) {
-      otherUser.amount += Number(tran.otherAmt);
+      reportMap[typeId].expense[otherUser.userId] += Number(tran.otherAmt);
     }
-
-    reportMap[typeId].totalAmount += Number(tran.totalAmt);
   });
 
   const report = Object.values(reportMap);
@@ -121,7 +123,6 @@ module.exports.getReportInfo = tryCatch(async (req, res, next) => {
   res.json({
     users,
     report,
-    body: req.body,
     msg: "Get report successful.",
   });
 });
