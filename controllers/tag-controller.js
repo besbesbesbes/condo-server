@@ -112,12 +112,39 @@ module.exports.getTag = tryCatch(async (req, res, next) => {
     userIds.push(buddy.userId);
   }
 
-  // 3. Get tags
+  // 3. Get tags that are used by the current user or their buddy
   const tags = await prisma.tag.findMany({
     where: {
-      userId: {
-        in: userIds,
+      TagTran: {
+        some: {
+          OR: [
+            {
+              userId: {
+                in: userIds,
+              },
+            },
+            {
+              tran: {
+                OR: [
+                  {
+                    userId: {
+                      in: userIds,
+                    },
+                  },
+                  {
+                    paidUserId: {
+                      in: userIds,
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       },
+    },
+    orderBy: {
+      tagTxt: "asc",
     },
   });
 
