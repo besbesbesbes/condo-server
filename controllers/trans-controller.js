@@ -89,6 +89,7 @@ module.exports.getTrans = tryCatch(async (req, res, next) => {
     orderBy: {
       recordDate: "desc",
     },
+    take: 100,
   });
 
   const transWithFlag = trans.map((tran) => ({

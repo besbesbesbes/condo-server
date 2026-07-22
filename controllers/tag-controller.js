@@ -182,11 +182,17 @@ module.exports.editTagTran = tryCatch(async (req, res) => {
       let tagId = item.tagId;
 
       if (!tagId) {
-        const newTag = await tx.tag.create({
-          data: { tagTxt: item.tagTxt },
+        const tag = await tx.tag.upsert({
+          where: {
+            tagTxt: item.tagTxt.trim(),
+          },
+          update: {},
+          create: {
+            tagTxt: item.tagTxt.trim(),
+          },
         });
 
-        tagId = newTag.tagId;
+        tagId = tag.tagId;
       }
 
       await tx.tagTran.create({
